@@ -1,0 +1,62 @@
+#!/bin/bash 
+
+#donwloaded it from internet
+#docker pull wishartlab/phastest-docker
+#docker run -it wishartlab/phastest-docker .
+#starting phastest container
+# docker run -it --entrypoint bash wishartlab/phastest-docker
+
+#creating container. had too many :D
+    # 
+    docker run -it -v /home/simona/Bakalauras/PROGRAMOS/defense-finder/sekos.fasta:/data/sekos.fasta wishartlab/phastest-docker bash
+
+#inside container
+#copying file from ubuntu to docker container into new directory
+#docker cp /home/simona/Bakalauras/PROGRAMOS/defense-finder/sekos.fasta 8c7cf368b79d:/data/sekos.fasta
+
+#BUILDING DOCKER IMAGE
+
+# docker build -t phastest-image .
+
+
+docker pull wishartlab/phastest-docker
+
+docker build -t wishartlab/phastest-docker
+
+
+docker run -v /home/simona/Bakalauras/N_sekos/input/sekos.fasta:/data -it wishartlab/phastest-docker --input /data/sekos.fasta --output /data/results
+
+docker cp /home/simona/Bakalauras/N_sekos/input/sekos.fasta 6292ed81aa60:/data/sekos.fasta 
+
+
+
+
+
+
+
+
+
+
+
+# start container
+
+docker start a56cf2959403
+
+#getting inside docker container
+
+docker exec -it a56cf2959403 bash
+
+#runing phastest inside docker container
+
+ phastest -i fasta -s /data/sekos.fasta 
+# in need of BLAST
+#didn't work with installation into container 
+# wll run container with my local blast
+#-i lets interact via terminal; -t allocates a pseu-terminal
+
+docker run -it -v /usr/bin/:/usr/local/bin -v /home/simona/Bakalauras/PROGRAMOS/defense-finder/sekos.fasta:/data/sekos.fasta wishartlab/phastest-docker bash
+
+
+apt install -y blast+
+
+

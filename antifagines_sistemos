@@ -1,0 +1,36 @@
+#!/bin/bash 
+
+#### Defense finder #######################
+
+conda create –name defensefinder
+conda activate defensefinder
+pip install mdmparis-defense-finder
+# pip install -U mdmparis-defense-finder
+defense-finder update
+defense-finder update --help
+
+#################Profagai#############3
+
+##Docker
+sudo apt update && sudo apt install docker.io -y
+sudo systemctl start docker
+sudo systemctl enable docker
+
+################# Docker Hub #############
+docker pull naveendockr/defense-finder
+
+
+# python defense_finder/__init__.py  run --out-dir results sekos.fasta
+
+# /path/to/your/virtualenv/bin/python defense_finder/defense_finder.py run --out-dir results your_sequences.fast
+
+# docker run --rm -v ~/Bakalauras/PROGRAMOS_IR_TT/defense-finder:/data defensefinder
+# docker run -it --rm -v ~/Bakalauras/PROGRAMOS_IR_TT/defense-finder:/data defensefinder /bin/bash
+
+docker build -t naveendockr/defense-finder .
+
+
+
+    docker run -it -v /home/simona/Bakalauras/PROGRAMOS/defense-finder/sekos.fasta:/data/sekos.fasta /naveendockr/defense bash
+
+    
