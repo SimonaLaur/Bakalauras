@@ -9,28 +9,20 @@ pip install mdmparis-defense-finder
 defense-finder update
 defense-finder update --help
 
-#################Profagai#############3
+#################Antfagines sistemos #############3
 
-##Docker
-sudo apt update && sudo apt install docker.io -y
-sudo systemctl start docker
-sudo systemctl enable docker
+### Suskaidymas i kelis failus, kadangi su 263 sekomis per didelis.
 
-################# Docker Hub #############
-docker pull naveendockr/defense-finder
+cat visos.faa | head -130 > pirma_puse.faa
 
+ sed -n '131,260p' visos.faa > antra_dalis.faa
+ sed -n '261,410p' visos.faa > trecia_dalis.faa
+sed -n '410,540p' visos.faa > ketvirta_dalis.faa
 
-# python defense_finder/__init__.py  run --out-dir results sekos.fasta
-
-# /path/to/your/virtualenv/bin/python defense_finder/defense_finder.py run --out-dir results your_sequences.fast
-
-# docker run --rm -v ~/Bakalauras/PROGRAMOS_IR_TT/defense-finder:/data defensefinder
-# docker run -it --rm -v ~/Bakalauras/PROGRAMOS_IR_TT/defense-finder:/data defensefinder /bin/bash
-
-docker build -t naveendockr/defense-finder .
+#Rezultatais naujoje output direktorijose
+defensefinder run ../pirma_puse.faa
+defensefinder run ../antra_dalis.faa
+defensefinder run ../trecia_dalis.faa
+defensefinder run ../ketvirta_dalis.faa
 
 
-
-    docker run -it -v /home/simona/Bakalauras/PROGRAMOS/defense-finder/sekos.fasta:/data/sekos.fasta /naveendockr/defense bash
-
-    
