@@ -26,3 +26,8 @@ defensefinder run ../trecia_dalis.faa
 defensefinder run ../ketvirta_dalis.faa
 
 
+# vienas failas
+
+cat output_1/pirma_puse_defense_finder_systems.tsv output_2/antra_puse_defense_finder_systems.tsv output_3/trecia_puse_defense_finder_systems.tsv output_4/ketvirta_dalis_defense_finder_systems.tsv >> apsaugines_sistemos.tsv
+
+ mv ../../../PROGRAMOS/defense-finder/apsaugines_sistemos.tsv .

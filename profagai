@@ -1,5 +1,8 @@
 #!/bin/bash 
-
+ git add .
+ git commit -m profagai
+ git push -u origin master
+git push
 #donwloaded it from internet
 #docker pull wishartlab/phastest-docker
 #docker run -it wishartlab/phastest-docker .
