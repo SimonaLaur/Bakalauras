@@ -7,31 +7,61 @@ git push
 
 #Bandymas su PhasTest_API
 
-sudo apt-get update && sudo apt-get install jq -y
-git clone https://github.com/ansontwk/PhasTest_API.git
-cd PhasTest_API
-chmod +x Phastest_API.sh
+# sudo apt-get update && sudo apt-get install jq -y
+# git clone https://github.com/ansontwk/PhasTest_API.git
+# cd PhasTest_API
+# chmod +x Phastest_API.sh
 
- cat ../../../defense-finder/pirma_puse.faa > I_dalis.fna
-cat ../../../defense-finder/antra_dalis.faa > II_dalis.fna
-cat ../../../defense-finder/trecia_dalis.faa > III_dalis.fna
-cat ../../../defense-finder/ketvirta_dalis.faa > IV_dalis.fna
-
-
-#### Submitting job
+ cat defense-finder/pirma_puse.faa > I_dalis.fna
+cat ../defense-finder/antra_dalis.faa > II_dalis.fna
+cat ../defense-finder/trecia_dalis.faa > III_dalis.fna
+cat ../defense-finder/ketvirta_dalis.faa > IV_dalis.fna
 
 
-# bash phastest_api.sh --submitjob --inputDir ./00.fnafiles
+#DBSCAN
 
-# bash phastest_api.sh --getresults --outDir ./output phastest_results
-
-# bash phastest_api.sh --getresults --outDir ./01.phastest_results --cleanup
+conda install -c conda-forge -c bioconda -c defaults prokka
 
 
-################ Rezultatu reikia laukti per ilgai
+git clone https://github.com/tseemann/prokka.git
+# install the dependencies:
+sudo apt-get -y install bioperl libdatetime-perl libxml-simple-perl libdigest-md5-perl
+# install perl package
+sudo bash
+export PERL_MM_USE_DEFAULT=1
+export PERL_EXTUTILS_AUTOINSTALL="--defaultdeps"
+perl -MCPAN -e 'install "XML::Simple"'
+# install the prokka databases
+mkdir -p /root/.local/lib/prokka/db/cm/
+cp Archaea /root/.local/lib/prokka/db/cm/
+#reikejo perkelti visus prokka/db/cm gailus, kadangi kodas, kuris docker buvo neveikia kitaip + reikejo sukurti direktorija, kuri yra nurodyta kurejo  
+
+prokka --setupdb
+# test the installed prokka databases
+prokka --listdb
+
+git clone https://github.com/HIT-ImmunologyLab/DBSCAN-SWA
 
 
+### Download database from DBSCAN-SWA server
+wget -c -b http://www.microbiome-bigdata.com/PHISDetector/static/download/DBSCAN-SWA/db.tar.gz
 
-## SU DOCKER again
+### Unzip the database file
+tar -zxvf db.tar.gz
+### Put the unzipped database files in specified subdirectory
+ mv db DBSCAN-SWA/
 
-docker pull wishartlab/phastest-docker
+
+export PATH=$PATH:/home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/software/blast+:$PATH
+export PATH=$PATH:/home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/bin
+export PATH=$PATH:/home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/software/diamond
+export PATH=$PATH:/home/simona/Bakalauras/PROGRAMOS/prokka/bin
+
+chmod u+x -R /home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/bin
+chmod u+x -R /home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/software
+
+
+python3 /home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/bin/dbscan-swa.py -h
+
+
+python3 /home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/bin/dbscan-swa.py --input /home/simona/Bakalauras/PROGRAMOS/pirmos_dvi.fna --output output/visos_sekos --prefix bac --add_annotation none
