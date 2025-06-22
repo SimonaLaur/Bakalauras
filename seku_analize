@@ -48,6 +48,16 @@ awk 'OFS="\t" { if ($2 > $3) { t = $2; $2 = $3; $3 = t; } print }' | sed 's/ /\t
 
 bedtools getfasta -fi sekos.fasta -bed motyvo_koordinates.bed -s -fo ../output/motyvo_fasta.fasta
 
+
+
+ 
+samtools faidx genomai.fasta
+bedtools slop -i motyvo_koordinates.bed  -g sekos.fasta.fai -l 100 -r 0  -s > prailginta.bed
+
+bedtools getfasta -fi sekos.fasta -bed prailginta.bed -s -fo prailginta.fasta
+
+
+
 ############################################
 
 
@@ -142,4 +152,3 @@ awk '{print $3}' sutvarkytas.txt sed 's/piscium_.*/piscium/' | sed 's/_CIRM-BIA[
 
 ### komentaras dėl rezultatų, šiuo metu stadija - yra paliginys, kuriame rasto 172 sekos su blast.
 ## reikia patikrinti kelių sekų panašumą, kur mažesnis motyvas atinkantis ar čia atsitiktinumas ar tiesiog kitoje vietoje panašumas didesni
-

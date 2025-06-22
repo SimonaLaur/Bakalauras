@@ -5,18 +5,9 @@ git push -u origin master
 git push
 
 
-#Bandymas su PhasTest_API
+cat defense-finder/pirma_puse.faa defense-finder/antra_dalis.faa defense-finder/trecia_dalis.faa defense-finder/ketvirta_dalis.faa > sekos.fna
 
-# sudo apt-get update && sudo apt-get install jq -y
-# git clone https://github.com/ansontwk/PhasTest_API.git
-# cd PhasTest_API
-# chmod +x Phastest_API.sh
-
- cat defense-finder/pirma_puse.faa > I_dalis.fna
-cat ../defense-finder/antra_dalis.faa > II_dalis.fna
-cat ../defense-finder/trecia_dalis.faa > III_dalis.fna
-cat ../defense-finder/ketvirta_dalis.faa > IV_dalis.fna
-
+#kas kartą leidžiant visą docker failą reiki pradėti nuo pradžių, paketai, kurie buvo instaliuoti jų nerikės instaliuoti dar kartą, tai sutaupys laiko (jie tiesiog bus atnaujinami)
 
 #DBSCAN
 
@@ -24,17 +15,23 @@ conda install -c conda-forge -c bioconda -c defaults prokka
 
 
 git clone https://github.com/tseemann/prokka.git
-# install the dependencies:
+# install the dependencies (nereikia kas kartą iš naujo):
 sudo apt-get -y install bioperl libdatetime-perl libxml-simple-perl libdigest-md5-perl
 # install perl package
-sudo bash
+sudo bash #root direktorijos paleidimas, reikia kas karta paleidus terminala
 export PERL_MM_USE_DEFAULT=1
 export PERL_EXTUTILS_AUTOINSTALL="--defaultdeps"
 perl -MCPAN -e 'install "XML::Simple"'
 # install the prokka databases
-mkdir -p /root/.local/lib/prokka/db/cm/
-cp Archaea /root/.local/lib/prokka/db/cm/
-#reikejo perkelti visus prokka/db/cm gailus, kadangi kodas, kuris docker buvo neveikia kitaip + reikejo sukurti direktorija, kuri yra nurodyta kurejo  
+
+
+#############################################nebūtina jei jau daryta
+mkdir -p /root/.local/lib/prokka/db/cm/ #šis etapas gali būti ir nereikalingas
+#direktorijos sukūrimas reikalingas, kadangi docker container kūrėjas pamiršo, kad ne visuose kompiuteriuose šis kelias yra :DDD
+#####################################
+#jeigu neleidžia sukurti direktorijos galima paleisit
+sudo ru #nebūtinas etapas
+#######################################
 
 prokka --setupdb
 # test the installed prokka databases
@@ -45,12 +42,14 @@ git clone https://github.com/HIT-ImmunologyLab/DBSCAN-SWA
 
 ### Download database from DBSCAN-SWA server
 wget -c -b http://www.microbiome-bigdata.com/PHISDetector/static/download/DBSCAN-SWA/db.tar.gz
+##!!!!!! su šiuo linku yra problemų
+#Rekomendacija: rankiniu būdu atsisiųsti per http://www.microbiome-bigdata.com/PHISDetector/static/download/DBSCAN-SWA http linką 
+
 
 ### Unzip the database file
 tar -zxvf db.tar.gz
 ### Put the unzipped database files in specified subdirectory
- mv db DBSCAN-SWA/
-
+mv db DBSCAN-SWA/
 
 export PATH=$PATH:/home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/software/blast+:$PATH
 export PATH=$PATH:/home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/bin
@@ -63,5 +62,544 @@ chmod u+x -R /home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/software
 
 python3 /home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/bin/dbscan-swa.py -h
 
+#################################################
 
-python3 /home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/bin/dbscan-swa.py --input /home/simona/Bakalauras/PROGRAMOS/pirmos_dvi.fna --output output/visos_sekos --prefix bac --add_annotation none
+#### PhiSpy
+
+
+conda install -c bioconda phispy
+
+sudo apt install -y build-essential python3-dev python3-pip
+
+git clone https://github.com/linsalrob/PhiSpy.git
+cd PhiSpy
+python3 -m pip install --user PhiSpy
+python3 setup.py install --user --record installed_files.txt
+cat installed_files.txt | xargs rm -f
+
+#Training
+curl -Lo Streptococcus_pyogenes_M1_GAS.gb https://bit.ly/37qFArb
+PhiSpy.py -o Streptococcus.phages Streptococcus_pyogenes_M1_GAS.gb
+PhiSpy.py -o Streptococcus.phages -t data/trainSet_160490.61.txt Streptococcus_pyogenes_M1_GAS.gb
+
+scp -r anotacijos simona@minge.ibt.lt:~/PhiSpy
+
+
+###################################
+/home/simona/Bakalauras/N_sekos/input/GenBank/GCA_044358305.1/GCA_044358305.1_ASM4435830v1_genomic.fna
+
+#Palaikomi tik genbank failai, todėl reikia anotuoti
+
+conda install -c conda-forge -c bioconda prokka
+
+
+sudo bash #root direktorijos paleidimas, reikia kas karta paleidus terminala
+export PERL_MM_USE_DEFAULT=1
+export PERL_EXTUTILS_AUTOINSTALL="--defaultdeps"
+perl -MCPAN -e 'install "XML::Simple"'
+
+prokka --setupdb
+# test the installed prokka databases
+prokka --listdb
+
+prokka --outdir anotacijos --prefix GCA_044358305 /home/simona/Bakalauras/N_sekos/input/GenBank/GCA_044358305.1/GCA_044358305.1_ASM4435830v1_genomic.fna
+
+#Tis cycle is necesary to let in root 
+# Set input and output directories
+
+INPUT_DIR="/home/simona/Bakalauras/N_sekos/input/GenBank"
+OUTPUT_DIR="/home/simona/Bakalauras/PROGRAMOS/PhiSpy/anotacijos"
+mkdir -p "$OUTPUT_DIR"
+
+# Loop through all .fna files in subdirectories of INPUT_DIR
+for fna_file in "$INPUT_DIR"/GCA_000006865.1_ASM686v1_genomic.fna; do
+    # Extract the relative path from INPUT_DIR to preserve folder structure
+    rel_path="${fna_file#$INPUT_DIR/}"
+    
+    # Extract the directory structure and filename without extension
+    parent_dir=$(dirname "$rel_path")  # Get subdirectory structure
+    base_name=$(basename "$fna_file" .fna)  # Extract file name without .fna extension
+    output_subdir="$OUTPUT_DIR/$parent_dir"
+    mkdir -p "$output_subdir"
+    gbk_file="$output_subdir/$base_name.gbk"
+    
+    if [ -f "$gbk_file" ]; then
+        echo "Skipping: $fna_file (already processed)"
+    else
+        # Run Prokka with output in the correct directory
+        prokka --outdir "$output_subdir" --prefix "$base_name" --force "$fna_file"
+    fi
+done
+
+#galima su biorenders paveiksliuka naudoti. Tikrinti su MG1363 genomu. Jame turi buti 6 profagai
+
+#surasti, kodel neranda 
+
+
+#### PhiSpy su remote kompiuteriu ##########################3
+ssh simona@minge.ibt.lt
+bash
+bash
+
+
+#negaliu naudoti remote sudo todel virtual environment naudoju sitas komandas
+
+conda create -n phispy_env python
+conda activate phispy_env
+conda install -c conda-forge libgcc-ng python_abi
+conda install -c bioconda phispy
+
+sudo apt install -y build-essential python3-dev python3-pip
+python3 -m pip install --user PhiSpy
+
+git clone https://github.com/linsalrob/PhiSpy.git
+cd PhiSpy
+python3 -m pip install --user PhiSpy
+python3 setup.py install --user --record installed_files.txt
+cat installed_files.txt | xargs rm -f
+
+#Training
+
+#curl -Lo Streptococcus_pyogenes_M1_GAS.gb https://bit.ly/37qFArb
+wget -O Streptococcus_pyogenes_M1_GAS.gb https://bit.ly/37qFArb
+
+PhiSpy.py -o Streptococcus.phages Streptococcus_pyogenes_M1_GAS.gb
+PhiSpy.py -o Streptococcus.phages -t data/trainSet_160490.61.txt Streptococcus_pyogenes_M1_GAS.gb
+
+scp anotacijos.tar simona@minge.ibt.lt:/home/simona/PhiSpy
+
+
+##### Po anotacijų sukuriamas Genbank failo formatas 
+
+phiphy.py mygenome.gbk -o phispy_output
+
+PhiSpy.py anotacijos/GCA_044358305.gbk -o phispy_output
+
+
+#INPUT="/home/simona/Bakalauras/PROGRAMOS/PhiSpy/anotacijos"
+
+INPUT="/home/simona/PhiSpy/failai"
+OUTPUT="/home/simona/PhiSpy/Profagai"
+
+for gbk_files in "$INPUT"/*/*.gbk; do
+    base_name=$(basename "$gbk_files" .gbk)
+    
+    # Create a corresponding output subdirectory inside OUTPUT
+    output_subdir="$OUTPUT/$base_name"
+    mkdir -p "$output_subdir"
+    PhiSpy.py "$gbk_files" -o "$output_subdir" --metrics at_skew
+done
+
+# comparing directories
+
+comm -3 <(ls -1 /path/to/dir1 | sort) <(ls -1 /path/to/dir2 | sort)
+
+
+# kelias="/home/simona/Bakalauras/PROGRAMOS/PhiSpy/anotacijos"
+# gbk_failai="/home/simona/Bakalauras/PROGRAMOS/PhiSpy/failai"
+
+# for files in "$kelias"/*/*.gbk ; do
+#     rel_path="${files#$kelias}"
+#     parent_dir=$(dirname "$rel_path")
+#     base_name=$(basename "$files" .gbk)
+#     subdir="$gbk_failai/$parent_dir"
+#     mkdir -p "$subdir"
+#     mkdir -p "$subdir"
+#     cp "$files" "$subdir"
+# done
+
+
+for profagai in */*.tsv; do
+    grep 'pp' "$profagai" | wc -l
+done
+
+
+for dir in GCA_*; do 
+    new_name=$(echo "$dir" | sed -E 's/(GCA_[0-9]+\.[0-9]+).*/\1/')
+    mv "$dir" "$new_name"
+done
+
+# .* → Matches everything after the ID.
+
+# \1 → Keeps only the matched ID part.
+
+# mv "$dir" "$new_name" → Renames the directory.
+
+for profagai in */*.tsv; do
+    count=$(grep -o 'pp' "$profagai" | wc -l)  # Count occurrences of 'pp' followed by a number
+    dir_id=$(dirname "$profagai")  # Extract directory name
+    echo "$dir_id: $count" 
+done > profagai.txt
+
+scp username@remote_host:/path/to/remote/file /path/to/local/destination
+
+
+for failai in Profagai/; do 
+    mkdir Profagai/failai
+    mv "$failai" failai
+done
+
+grep '>' */*.fna | sed 's/:>/ /' | awk -F'/' '{print $1, $2}' | awk '{$2=$3; $3=$4; $4=$5; $5=$6; $6=$7; print}' | sed 's/,.*//' | sort | uniq > ../../output/Profagai/bakteriju_pilni_pavadinimai.txt
+
+ grep -v 'plasmid' bakteriju_pilni_pavadinimai.txt > bakteriju_pavadinimai.txt
+
+ sort profagai.txt  | uniq > profagai.txt
+
+ join -1 1 -2 1 profagai.txt bakteriju_pavadinimai.txt > pilna_lentele.txt
+
+ grep -Fxv -f file_list.txt dir_list.txt > unmatched_dirs.txt
+
+
+### Su API
+
+sudo apt-get install jq
+
+git clone https://github.com/ansontwk/PhasTest_API.git
+chmod +x Phastest_API.sh
+
+INPUT_BASE="/home/simona/Bakalauras/N_sekos/input/GenBank"
+OUTPUT_BASE="/home/simona/Bakalauras/N_sekos/output/Phastest"
+
+# Loop through each subdirectory
+for dir in "$INPUT_BASE"/*/; do
+    SUBDIR_NAME=$(basename "$dir")
+    INPUT_DIR="$dir"
+    OUTPUT_DIR="$OUTPUT_BASE/$SUBDIR_NAME"
+    mkdir -p "$OUTPUT_DIR"
+    bash Phastest_API.sh --submitjob --inputDir "$INPUT_DIR"
+    bash Phastest_API.sh --getresults --outDir "$OUTPUT_DIR"
+    bash Phastest_API.sh --getresults --outDir "$OUTPUT_DIR" --cleanup
+    echo "Completed: $SUBDIR_NAME"
+    sleep 10
+
+done
+
+
+
+
+#!/bin/bash
+
+# Define input and output directories
+INPUT_BASE="/home/simona/Bakalauras/N_sekos/input/nepavykusios"
+OUTPUT_BASE="/home/simona/Bakalauras/N_sekos/output/Phastest_su_nepavykusiomis"
+
+# Loop through each subdirectory
+for dir in "$INPUT_BASE"/*/; do
+    SUBDIR_NAME=$(basename "$dir")
+    
+    # Define input and output directories
+    INPUT_DIR="$dir"
+    OUTPUT_DIR="$OUTPUT_BASE/$SUBDIR_NAME"
+
+    # Create output directory if it doesn't exist
+    mkdir -p "$OUTPUT_DIR"
+    
+    echo "Processing: $SUBDIR_NAME"
+
+    # Submit job to Phastest API
+    bash Phastest_API.sh --submitjob --inputDir "$INPUT_DIR"
+
+    # Check if the submission was successful
+    if [ $? -ne 0 ]; then
+        echo "Error: Job submission failed for $SUBDIR_NAME"
+        continue
+    fi
+    sleep 10s
+done
+
+
+INPUT_BASE="/home/simona/Bakalauras/N_sekos/input/GenBank"
+OUTPUT_BASE="/home/simona/Bakalauras/N_sekos/output/Phastest_pabandymas"
+
+# Loop through each subdirectory
+for dir in "$INPUT_BASE"/*/; do
+    SUBDIR_NAME=$(basename "$dir")
+    
+    # Define input and output directories
+    INPUT_DIR="$dir"
+    OUTPUT_DIR="$OUTPUT_BASE/$SUBDIR_NAME"
+
+    echo "Getting results for $SUBDIR_NAME"
+    bash Phastest_API.sh --getresults --outDir "$OUTPUT_DIR"
+    
+    # Check if results were successfully retrieved
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to get results for $SUBDIR_NAME"
+        continue
+    fi
+    sleep 5s
+done
+
+
+INPUT_BASE="/home/simona/Bakalauras/N_sekos/input/GenBank"
+OUTPUT_BASE="/home/simona/Bakalauras/N_sekos/output/Phastest_pabandymas"
+
+
+
+# Loop through each subdirectory
+for dir in "$INPUT_BASE"/*/; do
+    SUBDIR_NAME=$(basename "$dir")
+    
+    # Define input and output directories
+    INPUT_DIR="$dir"
+    OUTPUT_DIR="$OUTPUT_BASE/$SUBDIR_NAME"
+
+
+    # Cleanup the job after retrieving results
+    bash Phastest_API.sh --getresults --outDir "$OUTPUT_DIR" --cleanup
+
+    # Check if cleanup was successful
+    if [ $? -ne 0 ]; then
+        echo "Error: Cleanup failed for $SUBDIR_NAME"
+        continue
+    fi
+
+    echo "Completed: $SUBDIR_NAME"
+    
+    # Wait before processing the next directory
+    echo "Waiting for 5 seconds before processing the next directory..."
+    sleep 5
+done
+
+echo "All jobs submitted and processed!"
+
+
+#trys ciklai, vienas submitinti, antras po vieno - dvieju dienu pasiimti tada leisti antra cikla paretrievinti rezultatus, trecias gauti rezultatus
+
+# rytoje vakare su pirma ir paskutine sekomis padaryti get komandas
+
+
+wget "https://phastest.ca/phastest_api?acc=ZZ_a528e83632" -O Output_filenameq
+
+
+
+
+for zip in *.zip; do
+  # Get the name of the zip file without extension
+  dir_name="${zip%.zip}"
+  
+  # Create a directory named after the zip file
+  mkdir "$dir_name"
+  
+  # Unzip the file into the newly created directory
+  unzip "$zip" -d "$dir_name"
+done
+
+
+#failai be info
+
+
+#  cp -r GCA_000312685.1/ ../nepavykusios/ +
+#  1954  cp -r GCA_002078375.4/ ../nepavykusios/ +
+#  1955  cp -r GCA_003722255.1/ ../nepavykusios/ +
+#  1956  cp -r GCA_006770265.1/ ../nepavykusios/ +
+#  1957  cp -r GCA_012689565.1/ ../nepavykusios/ +
+#  1958  cp -r GCA_016921055.1/ ../nepavykusios/ +
+#  1959  cp -r GCA_025562795.3/ ../nepavykusios/ +
+#  1960  cp -r GCA_030291915.1/ ../nepavykusios/ +
+#  1961  cp -r GCA_033631205.1/ ../nepavykusios/ nebe
+#  1962  cp -r GCA_037890745.1/ ../nepavykusios/ +
+#  1963  cp -r GCA_037891695.1/ ../nepavykusios/ nebe
+#  1964  cp -r GCA_037891825.1/ ../nepavykusios/ +
+#  1965  cp -r GCA_037892375.1/ ../nepavykusios/ +
+#  1966  cp -r GCA_037892725.1/ ../nepavykusios/ +
+#  1967  cp -r GCA_039645535.1/ ../nepavykusios/ +
+#  1968  cp -r GCA_044336775.1/ ../nepavykusios/ nebe
+#  1969  cp -r GCA_044360705.1/ ../nepavykusios/ +
+#  1970  cp -r GCA_045689625.1/ ../nepavykusios/ +
+
+# #(base) simona@DESKTOP-HB9OR50:~/Bakalauras/N_sekos/output/Phastest_pabandymas$ grep -r 'region' Failai/*/predicted_phage_regions.json | wc -l
+# 1000
+
+###### Profagu skaicius ########
+
+grep 'region' */predicted_phage_regions.json | wc -l 
+
+
+for dir in Failai/*/; do
+    json_file="${dir}predicted_phage_regions.json"
+    if [[ -f "$json_file" ]]; then
+        count=$(grep -c 'region' "$json_file")
+    else
+        count=0
+    fi
+    dir_name=$(basename "$dir")
+    echo -e "$count\t$dir_name" | sed 's/_ASM.*//' | sed 's/\.1_.*/.1/' | sort -k2
+done > profagu_skaicius.txt
+
+
+ join -1 2 -2 1 profagu_skaicius.txt bakteriju_pavadinimai.txt | sed -E 's/^(([^ ]+ ){3})(.+)/\1\3/; s/ /_/4g' > profagai_bakterijose.txt
+ 
+
+sed -E 's/^(([^ ]+ ){3})Lactococcus_([a-z]+).*/\1Lactococcus_\3/' profagai_bakterijose.txt > profagai_rusyse.txt
+
+# ([^ ]+ ){3} — grabs the first three space-separated columns
+
+# Lactococcus ([a-z]+) — captures the genus and just the species name
+
+# .* — eats up the rest (like subsp., strain, chromosome, etc.)
+
+# \1Lactococcus \3 — keeps the beginning and rewrites the last column cleanly
+
+#############################################################################
+
+### Full profagai ar ne?
+
+for phage in Failai/*/; do
+    fasta_file="${phage}predicted_phage_regions.json"
+    if [[ -f "$fasta_file" ]]; then
+        count=$(grep -c 'intact' "$fasta_file")
+    else
+        count=0
+    fi
+    dir_name=$(basename "$phage")
+    echo -e "$count\t$dir_name" | sed 's/_ASM.*//' | sed 's/\.1_.*/.1/' | sort -k2
+done > profagu_pilnumas.txt
+
+ join -1 2 -2 1 profagu_pilnumas.txt profagai_rusyse.txt > profagu_info.txt
+ join -1 1 -2 2 informacija.txt ORF_skaicius.txt > info.txt
+ join -1 1 -2 2 info.txt genomo_dydis.txt > INFO.txt
+join -1 1 -2 1 profagu_info.txt INFO.txt | awk '{print $1, $2, $3, $5, $7, $10, $11}' > Info.txt
+# grep 'complete' Failai/GCA_000009425.1_ASM942v1_genomic/predicted_phage_regions.json 
+#                 "completeness":"intact",
+#                 "completeness":"intact",
+#                 "completeness":"intact",
+#                 "completeness":"incomplete",
+#                 "completeness":"incomplete",
+
+
+ ########### ORF vs. ilgis ##############################
+
+for orf in Failai/*/; do
+    genes_file="${orf}predicted_genes.json"
+    if [[ -f "$genes_file" ]]; then
+        count=$(grep -i 'orf' "$genes_file" | wc -l)
+    else
+        count=0
+    fi
+    dir_name=$(basename "$orf")
+    echo -e "$count\t$dir_name" | sed 's/_ASM.*//' | sed 's/\.1_.*/.1/' | sort -k2
+done > ORF_skaicius.txt
+ 
+#Klausimas del tu kur nieko nerado ar juos naudoti?
+#Klausimas ar ORF turi buti unique, kad skaiciuotusi?
+
+
+
+chmod +x clean_last_column.sh
+
+./clean_last_column.sh profagai_bakterijose.txt > profagai_bakterijose_cleaned.txt
+
+#Genomo dydis
+
+for genome in Failai/*/; do
+    size_file="${genome}summary.txt"
+    if [[ -f "$size_file" ]]; then
+        count=$(grep ', gc' "$size_file" | sed -E 's/.*[^0-9]([0-9]+), gc%.*/\1/')
+    else
+        count=0
+    fi
+    dir_name=$(basename "$genome")
+    echo -e "$count\t$dir_name" | sed 's/_ASM.*//' | sed 's/\.1_.*/.1/' | sort -k2
+done > genomo_dydis.txt
+
+
+#GC
+
+for gc in Failai/*/; do
+    gc_file="${gc}summary.txt"
+    if [[ -f "$gc_file" ]]; then
+        count=$(grep ', gc' "$gc_file" | sed -E 's/.*gc%: *([0-9.]+)%.*/\1/')
+    else
+        count=0
+    fi
+    dir_name=$(basename "$gc")
+    echo -e "$count\t$dir_name" | sed 's/_ASM.*//' | sed 's/\.1_.*/.1/' | sort -k2
+done > GC_content.txt
+
+###### Ani score
+
+
+global_output="all_matched_intact_phages.fasta"
+> "$global_output"  # Clear old global output before starting
+
+for dir in Failai/*/; do
+    folder_name=$(basename "$dir")
+    genome_id=$(echo "$folder_name" | cut -d'_' -f1,2)
+    json_file="$dir/predicted_phage_regions.json"
+    fasta_file="${dir}phage_regions.fna"
+    output_file="intact_phages/${genome_id}_intact_phages.fasta"
+
+    # Check if required files exist
+    if [[ ! -f "$json_file" || ! -f "$fasta_file" ]]; then
+        echo "Skipping $dir (missing file)"
+        continue
+    fi
+    echo "Processing $dir..."
+    > "$output_file"
+
+    jq -c '.[] | select(.completeness=="intact")' "$json_file" | while read -r region; do
+        region_num=$(echo "$region" | jq -r '.region')
+        start=$(echo "$region" | jq -r '.start')  # (note: 'start' is parsed but not used later)
+
+        # Find matching header
+        header_line=$(grep "^>[^[:space:]]" "$fasta_file" | grep ">${region_num}" | head -n 1)
+
+        if [[ -n "$header_line" ]]; then
+            awk -v header="$header_line" -v rid="$region_num" -v gid="$genome_id" '
+                BEGIN {found=0}
+                $0 == header {found=1; print ">phage_"rid"_"gid; next}
+                /^>/ && found {exit}
+                found {print}
+            ' "$fasta_file" | tee -a "$output_file" >> "$global_output"
+        fi
+    done
+
+#####
+#Because FastAni only accepts files as separate fasta files shoul be separated into different files
+awk '/^>/ {
+    if (seq) {
+        print seq > "split_phages/" filename
+    }
+    header = substr($0, 2)
+    gsub(/[^A-Za-z0-9_.-]/, "_", header)  # Sanitize filename
+    filename = header ".fna"
+    print $0 > "split_phages/" filename
+    seq=""
+    next
+}
+{
+    print >> "split_phages/" filename
+}' all_matched_intact_phages.fasta
+
+
+##### FastAni
+
+git clone https://github.com/ParBLiSS/FastANI.git
+
+find "$(pwd)" -name "*.fna" > FastANI/query_list.txt
+
+cp query_list.txt reference_list.txt
+
+fastANI --ql query_list.txt --rl reference_list.txt -o fastani_results.txt
+
+fastANI --ql query_list.txt --rl reference_list.txt -o fastani_results_matrix --matrix
+
+
+sed -E 's@.*/(phage_[0-9]+_GCA_[0-9]+\.[0-9]+)\.fna@\1@' fastani_results_matrix.matrix > matrica.matrix
+
+## genomu pervadinimas matricoje
+
+###  Pyani
+
+conda create --name pyani_env python=3.8 -y
+conda activate pyani_env
+conda install pyani
+
+pip3 install pyani
+conda config --add channels conda-forge
+conda config --add channels bioconda
+conda config --add channels defaults
+conda install blast fastani legacy-blast mummer
+
+pip install -r requirements.txt
