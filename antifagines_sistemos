@@ -1,0 +1,58 @@
+#!/bin/bash 
+
+#### Defense finder #######################
+## Defense Finder instaliavimas, must - python 3.9
+conda create --name defensefinder python=3.9 -y
+conda activate defensefinder
+pip install mdmparis-defense-finder
+# pip install --upgrade networkx
+# pip install --upgrade importlib-metadata
+# pip install -U mdmparis-defense-finder
+defense-finder update
+defense-finder update --help
+#################Antfagines sistemos #############3
+
+### fasta formatas pakeičiamas į faa, kadangi tik tokį priima defense finder
+ awk '/^>/ {if (seq) print seq; print; seq=""; next} {seq = seq $0} END {print seq}' sekos.fasta >> visos.faa
+
+## Sekos suskaldomos į 6 mažesnius failus, kitu atveju kyla problemų su įrankiu
+head -n 76 visos.faa > I.faa
+sed -n '77,152p' visos.faa > II.faa
+sed -n '153,228p' visos.faa > III.faa
+sed -n '229,304p' visos.faa > IV.faa
+sed -n '305,380p' visos.faa > V.faa
+sed -n '381,462p' visos.faa > VI.faa
+
+files=(I.faa II.faa III.faa IV.faa V.faa VI.faa)
+
+### Failai perkeliami į atskiras output direktorijas
+
+files=(I.faa II.faa III.faa IV.faa V.faa VI.faa)
+
+for i in {1..6}; do
+  mkdir -p o_$i
+  mv ${files[$((i-1))]} o_$i/
+done
+
+
+## Naudojamas tmux paleisti lygiagrečiai keliems failams
+
+defense-finder run I.faa
+defense-finder run II.faa
+defense-finder run III.faa
+defense-finder run IV.faa
+defense-finder run V.faa
+defense-finder run VI.faa
+
+
+### Gauti rezultatai sudedami į vieną failą tolimesnei analizei
+
+first=1
+for file in o_*/*_defense_finder_systems.tsv; do
+    if [ "$first" -eq 1 ]; then
+        cat "$file"
+        first=0
+    else
+        tail -n +2 "$file"
+    fi
+done > all_defense_systems.tsv

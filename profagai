@@ -1,0 +1,606 @@
+#!/bin/bash 
+git add .
+git commit -m profagai
+git push -u origin master
+git push
+
+
+cat defense-finder/pirma_puse.faa defense-finder/antra_dalis.faa defense-finder/trecia_dalis.faa defense-finder/ketvirta_dalis.faa > sekos.fna
+
+#kas kartą leidžiant visą docker failą reiki pradėti nuo pradžių, paketai, kurie buvo instaliuoti jų nerikės instaliuoti dar kartą, tai sutaupys laiko (jie tiesiog bus atnaujinami)
+
+#DBSCAN
+
+conda install -c conda-forge -c bioconda -c defaults prokka
+
+
+git clone https://github.com/tseemann/prokka.git
+# install the dependencies (nereikia kas kartą iš naujo):
+sudo apt-get -y install bioperl libdatetime-perl libxml-simple-perl libdigest-md5-perl
+# install perl package
+sudo bash #root direktorijos paleidimas, reikia kas karta paleidus terminala
+export PERL_MM_USE_DEFAULT=1
+export PERL_EXTUTILS_AUTOINSTALL="--defaultdeps"
+perl -MCPAN -e 'install "XML::Simple"'
+# install the prokka databases
+
+
+#############################################nebūtina jei jau daryta
+mkdir -p /root/.local/lib/prokka/db/cm/ #šis etapas gali būti ir nereikalingas
+#direktorijos sukūrimas reikalingas, kadangi docker container kūrėjas pamiršo, kad ne visuose kompiuteriuose šis kelias yra :DDD
+#####################################
+#jeigu neleidžia sukurti direktorijos galima paleisit
+sudo ru #nebūtinas etapas
+#######################################
+
+prokka --setupdb
+# test the installed prokka databases
+prokka --listdb
+
+git clone https://github.com/HIT-ImmunologyLab/DBSCAN-SWA
+
+
+### Download database from DBSCAN-SWA server
+wget -c -b http://www.microbiome-bigdata.com/PHISDetector/static/download/DBSCAN-SWA/db.tar.gz
+##!!!!!! su šiuo linku yra problemų
+#Rekomendacija: rankiniu būdu atsisiųsti per http://www.microbiome-bigdata.com/PHISDetector/static/download/DBSCAN-SWA http linką 
+
+
+### Unzip the database file
+tar -zxvf db.tar.gz
+### Put the unzipped database files in specified subdirectory
+mv db DBSCAN-SWA/
+
+export PATH=$PATH:/home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/software/blast+:$PATH
+export PATH=$PATH:/home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/bin
+export PATH=$PATH:/home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/software/diamond
+export PATH=$PATH:/home/simona/Bakalauras/PROGRAMOS/prokka/bin
+
+chmod u+x -R /home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/bin
+chmod u+x -R /home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/software
+
+
+python3 /home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/bin/dbscan-swa.py -h
+
+
+### nepavyko 
+
+python3 DBSCAN-SWA/bin/dbscan-swa.py --input maziau.fna --output output/sekos --prefix bac --add_annotation none
+#paleista 17:08, rezultatai gauti 17:15 su dviejomis sekomis
+
+python3 DBSCAN-SWA/bin/dbscan-swa.py --input I_dalis.fna --output output/sekos --prefix bac --add_annotation none
+#su 60 seku turetu uztrukti apie 4 h
+
+
+
+python3 DBSCAN-SWA/bin/dbscan-swa.py --input II_dalis.fna --output output/sekos1 --prefix bac --add_annotation none
+#reikia laukti, norint paleisti kita faila
+
+
+###senesnė versija 
+conda install -c conda-forge -c bioconda -c defaults prokka
+
+
+docker pull staphb/prokka:latest
+docker run staphb/prokka:latest prokka -h
+
+
+git clone https://github.com/HIT-ImmunologyLab/DBSCAN-SWA.gitls
+
+ # basically tie patys failai, nieko naujo.
+
+export PATH=/home/simona/Bakalauras/PROGRAMOS/DBSCAN-SWA/bin:$PATH
+source ~/.bashrc  # or source ~/.zshrc
+
+##same shit nieko nekeičia
+
+
+#################################################
+#VIBES
+sudo apt install default-jdk -y
+curl -s https://get.nextflow.io | bash
+chmod +x nextflow
+
+
+#nextflow direktorija
+## /home/simona/Bakalauras/PROGRAMOS/nextflow
+
+sudo mkdir -p /root/.local/bin
+mv nextflow /home/simona/.local/bin/
+
+git clone https://github.com/TravisWheelerLab/VIBES.git
+
+cd VIBES/nextflow_workflow/resources/db/
+
+wget https://zenodo.org/records/10372885/files/phrog_v4.bathmm
+
+nano params.yaml
+
+#   GNU nano 6.2                                     params.yaml                                               genome_files: /home/simona/Bakalauras/PROGRAMOS/maziau.fna
+# output_path: /home/simona/Bakalauras/PROGRAMOS/output
+
+# detect_integrations: true  # Enable prophage detection
+# annotate_phage_genes: false  # No phage gene database available
+# prokka_annotation: true  # Annotate bacterial genome with Prokka
+# zip_prokka_output: true  # Compress output to save space
+
+cd VIBES/nextflow_workflow
+
+
+nextflow run workflow.nf --input /home/simona/Bakalauras/PROGRAMOS/maziau.fna --output /home/simona/Bakalauras/PROGRAMOS/vibes_output/
+
+
+git clone https://github.com/TravisWheelerLab/VIBES.git
+
+
+
+head -2 maziau.fna > viena.fasta
+
+fold -w 80 viena.fasta | head -2 > viena_I.fasta
+
+
+#### PhiSpy
+
+conda install -c bioconda phispy
+sudo apt install -y build-essential python3-dev python3-pip
+python3 -m pip install --user PhiSpy
+
+git clone https://github.com/linsalrob/PhiSpy.git
+cd PhiSpy
+python3 setup.py install --user --record installed_files.txt
+
+cat installed_files.txt | xargs rm -f
+
+#Training
+
+curl -Lo Streptococcus_pyogenes_M1_GAS.gb https://bit.ly/37qFArb
+PhiSpy.py -o Streptococcus.phages Streptococcus_pyogenes_M1_GAS.gb
+
+PhiSpy.py -o Streptococcus.phages -t data/trainSet_160490.61.txt Streptococcus_pyogenes_M1_GAS.gb
+
+###################################
+/home/simona/Bakalauras/N_sekos/input/GenBank/GCA_044358305.1/GCA_044358305.1_ASM4435830v1_genomic.fna
+
+#Palaikomi tik genbank failai, todėl reikia anotuoti
+
+conda install -c conda-forge -c bioconda prokka
+
+
+sudo bash #root direktorijos paleidimas, reikia kas karta paleidus terminala
+export PERL_MM_USE_DEFAULT=1
+export PERL_EXTUTILS_AUTOINSTALL="--defaultdeps"
+perl -MCPAN -e 'install "XML::Simple"'
+
+prokka --setupdb
+# test the installed prokka databases
+prokka --listdb
+
+prokka --outdir anotacijos --prefix GCA_044358305 /home/simona/Bakalauras/N_sekos/input/GenBank/GCA_044358305.1/GCA_044358305.1_ASM4435830v1_genomic.fna
+
+#Tis cycle is necesary to let in root 
+# Set input and output directories
+
+INPUT_DIR="/home/simona/Bakalauras/N_sekos/input/GenBank"
+OUTPUT_DIR="/home/simona/Bakalauras/PROGRAMOS/PhiSpy/anotacijos"
+mkdir -p "$OUTPUT_DIR"
+
+# Loop through all .fna files in subdirectories of INPUT_DIR
+for fna_file in "$INPUT_DIR"/*/*.fna; do
+    # Extract the relative path from INPUT_DIR to preserve folder structure
+    rel_path="${fna_file#$INPUT_DIR/}"
+    
+    # Extract the directory structure and filename without extension
+    parent_dir=$(dirname "$rel_path")  # Get subdirectory structure
+    base_name=$(basename "$fna_file" .fna)  # Extract file name without .fna extension
+    output_subdir="$OUTPUT_DIR/$parent_dir"
+    mkdir -p "$output_subdir"
+    gbk_file="$output_subdir/$base_name.gbk"
+    
+    if [ -f "$gbk_file" ]; then
+        echo "Skipping: $fna_file (already processed)"
+    else
+        # Run Prokka with output in the correct directory
+        prokka --outdir "$output_subdir" --prefix "$base_name" --force "$fna_file"
+    fi
+done
+
+##### Po anotacijų sukuriamas Genbank failo formatas 
+
+phiphy.py mygenome.gbk -o phispy_output
+
+PhiSpy.py anotacijos/GCA_044358305.gbk -o phispy_output
+
+
+INPUT="/home/simona/Bakalauras/PROGRAMOS/PhiSpy/pabandymas"
+OUTPUT="/home/simona/Bakalauras/N_sekos/output/Profagai"
+
+for gbk_files in "$INPUT"/*/*.gb; do
+    base_name=$(basename "$gbk_files" .gbk)
+    
+    # Create a corresponding output subdirectory inside OUTPUT
+    output_subdir="$OUTPUT/$base_name"
+    mkdir -p "$output_subdir"
+    PhiSpy.py "$gbk_files" -o "$output_subdir"
+done
+
+
+#####PhasTest_API.git
+#galima su biorenders paveiksliuka naudoti. Tikrinti su MG1363 genomu. Jame turi buti 6 profagai
+git clone https://github.com/ansontwk/PhasTest_API.git
+cd PhasTest_API
+
+chmod +x Phastest_API.sh
+sh Phastest_API.sh
+
+
+INPUT_BASE="/home/simona/Bakalauras/N_sekos/input/GenBank"
+OUTPUT_BASE="/home/simona/Bakalauras/N_sekos/output/Phastest_pabandymas"
+
+# Ensure the base output directory exists
+mkdir -p "$OUTPUT_BASE"
+
+# Loop through each subdirectory in the input base
+for dir in "$INPUT_BASE"/*/; do
+    SUBDIR_NAME=$(basename "$dir")
+    INPUT_DIR="$dir"
+    OUTPUT_DIR="$OUTPUT_BASE/$SUBDIR_NAME"
+
+    # Create per‐sample output directory
+    mkdir -p "$OUTPUT_DIR"
+
+    echo "Processing: $SUBDIR_NAME"
+
+    # Submit job; on failure, print error and move to next
+    if ! bash Phastest_API.sh --submitjob --inputDir "$INPUT_DIR"; then
+        echo "Error: Job submission failed for $SUBDIR_NAME"
+        continue
+    fi
+
+    # Pause briefly before next submission
+    sleep 10s
+done
+
+
+
+
+# Ensure the base output directory exists
+mkdir -p "$OUTPUT_BASE"
+
+# Loop through each subdirectory in the input base
+for dir in "$INPUT_BASE"/*/; do
+    SUBDIR_NAME=$(basename "$dir")
+    INPUT_DIR="$dir"
+    OUTPUT_DIR="$OUTPUT_BASE/$SUBDIR_NAME"
+
+    # Create per‐sample output directory
+    mkdir -p "$OUTPUT_DIR"
+
+    echo "Getting results for $SUBDIR_NAME"
+
+    # Retrieve results; on failure, report and continue to next
+    if ! bash Phastest_API.sh --getresults --outDir "$OUTPUT_DIR"; then
+        echo "Error: Failed to get results for $SUBDIR_NAME"
+        continue
+    fi
+
+    # Short pause before next retrieval
+    sleep 5s
+done
+
+
+
+INPUT_BASE="/home/simona/Bakalauras/N_sekos/input/nepavykusios"
+OUTPUT_BASE="/home/simona/Bakalauras/N_sekos/output/Phastest_su_nepavykusiomis"
+
+# Ensure the base output directory exists
+mkdir -p "$OUTPUT_BASE"
+
+# Loop through each subdirectory in the input base
+for dir in "$INPUT_BASE"/*/; do
+    SUBDIR_NAME=$(basename "$dir")
+    INPUT_DIR="$dir"
+    OUTPUT_DIR="$OUTPUT_BASE/$SUBDIR_NAME"
+
+    # Create per-sample output directory
+    mkdir -p "$OUTPUT_DIR"
+
+    echo "Processing: $SUBDIR_NAME"
+
+    # Submit job; on failure, report and move to next
+    if ! bash Phastest_API.sh --submitjob --inputDir "$INPUT_DIR"; then
+        echo "Error: Job submission failed for $SUBDIR_NAME"
+        continue
+    fi
+
+    # Brief pause before submitting the next job
+    sleep 10s
+done
+
+
+INPUT_BASE="/home/simona/Bakalauras/N_sekos/input/nepavykusios"
+OUTPUT_BASE="/home/simona/Bakalauras/N_sekos/output/Phastest_su_nepavykusiomis"
+
+# Ensure the base output directory exists
+mkdir -p "$OUTPUT_BASE"
+
+# Loop through each subdirectory in the input base
+for dir in "$INPUT_BASE"/*/; do
+    SUBDIR_NAME=$(basename "$dir")
+    INPUT_DIR="$dir"
+    OUTPUT_DIR="$OUTPUT_BASE/$SUBDIR_NAME"
+
+    # Create per-sample output directory
+    mkdir -p "$OUTPUT_DIR"
+
+    echo "Getting results for $SUBDIR_NAME"
+
+    # Retrieve results; on failure, report and continue
+    if ! bash Phastest_API.sh --getresults --outDir "$OUTPUT_DIR"; then
+        echo "Error: Failed to get results for $SUBDIR_NAME"
+        continue
+    fi
+
+    # Short pause before next retrieval
+    sleep 5s
+done
+
+
+### Jei dar karta pamirsiu kazka isirasyti DUMDUMDUM
+
+cat ~/.bash_history | less
+
+
+# Go through each detail.txt that contains plasmid-related regions
+# removing plasmid sequences from phage_regions.fna
+
+for dir in $(grep 'plasmid' */detail.txt | grep 'region' | cut -d':' -f1 | sed 's|/detail.txt||' | sort | uniq); do
+    input="$dir/phage_regions.fna"
+    tmp="$dir/phage_regions.tmp"
+
+    if [ -f "$input" ]; then
+        awk '/^>/ {keep = ($0 !~ /plasmid/)} keep' "$input" > "$tmp" && mv "$tmp" "$input"
+    else
+        echo "File not found: $input"
+    fi
+done
+
+#remoing from json file
+for dir in $(grep 'plasmid' */detail.txt | grep 'region' | cut -d':' -f1 | sed 's|/detail.txt||' | sort | uniq); do
+    json_file="$dir/predicted_phage_regions.json"
+
+    if [ -f "$json_file" ]; then
+        jq '[.[] | select(.contig_tag | contains("plasmid") | not)]' "$json_file" > "$json_file.tmp" && mv "$json_file.tmp" "$json_file"
+    else
+        echo "File not found: $json_file"
+    fi
+done
+
+for dir in $(grep 'plasmid' */detail.txt \
+               | cut -d: -f1 \
+               | sed 's|/detail.txt||' \
+               | sort -u); do
+
+  infile="$dir/detail.txt"
+  tmpfile="$dir/detail.tmp"
+
+  awk '
+    # if this is a “region” header with “plasmid” → start skipping
+    /^#### region [0-9]+,.*plasmid.*####/ { skip=1; next }
+
+    # if we are skipping, and see the next region header or “Bacterial” marker → stop skipping,
+    # but don’t re‑skip this line (so it gets printed)
+    skip && (/^#### region [0-9]+,/ || /^#### Bacterial ####/) { skip=0 }
+    
+    # if not skipping, print the line
+    !skip { print }
+  ' "$infile" > "$tmpfile" \
+    && mv "$tmpfile" "$infile"
+done
+
+for dir in $(grep -l 'plasmid' */detail.txt \
+               | sed 's|/detail.txt||' \
+               | sort -u); do
+
+  awk '
+    # if this is a non‑indented line containing plasmid → start skipping
+    /^[^ \t]/ && /plasmid/ { skip=1; next }
+    # if skipping and line is indented → skip it
+    skip && /^[ \t]/  { next }
+    # if skipping and line is not indented → stop skipping
+    skip && /^[^ \t]/ { skip=0 }
+    # print everything when not skipping
+    !skip { print }
+  ' "$dir/detail.txt" > "$dir/detail.tmp" \
+    && mv "$dir/detail.tmp" "$dir/detail.txt"
+done
+
+
+##### Informacija apie bakterijas
+
+
+#### Duomenu atsifiltravimas
+
+
+
+grep '"region"' Failai/*/predicted_phage_regions.json | cut -d: -f1 | sort | uniq -c | sed 's/_ASM.*//' | sed 's/\.1_.*/.1/' | sed 's|Failai/||' > visi_profagai.txt
+
+
+grep '"intact"' Failai/*/predicted_phage_regions.json | cut -d: -f1 | sort | uniq -c | sed 's/_ASM.*//' | sed 's/\.1_.*/.1/' | sed 's|Failai/||' > pilni_profagai.txt
+
+# Extract genome size and GC content and format the output
+for file in Failai/GCA_*/detail.txt; do
+    # Extract file ID
+    file_id=$(basename $(dirname "$file"))
+    line=$(head -1 "$file")
+    genome_size=$(echo "$line" | grep -oP '\d+(?=, gc%)')
+    gc_content=$(echo "$line" | grep -oP '(?<=gc%: )\d+\.\d+')
+    echo -e "$genome_size $gc_content $file_id"
+done | sort -k3 | sed 's/_ASM.*//' | sed 's/\.1_.*/.1/' > gc_genome.txt
+
+ join -a 1 -1 2 -2 2 visi_profagai.txt pilni_profagai.txt| awk '{print $2, $1, $3 ? $3 : 0}' > iinfo.txt
+ join -1 2 -2 3 iinfo.txt gc_genome.txt > profagu_info.txt
+join -1 1 -2 1 informacija.txt profagu_info.txt > Info.txt
+##### Duomenys
+
+## Bndras profagu skaicius bakterijose
+
+
+grep '"region"' Failai/*/predicted_phage_regions.json | cut -d: -f1 | sort | uniq -c | sed 's/_ASM.*//' | sed 's/\.1_.*/.1/' | sed 's|Failai/||' > visi_profagai.txt
+
+
+## Pilnu profagu skaicius bakterijose
+
+grep '"intact"' Failai/*/predicted_phage_regions.json | cut -d: -f1 | sort | uniq -c | sed 's/_ASM.*//' | sed 's/\.1_.*/.1/' | sed 's|Failai/||' > pilni_profagai.txt
+
+
+
+
+#Extract GC content from prophages and thei genome size, intact phages
+
+for file in Failai/GCA_*/predicted_phage_regions.json; do
+    # Extract file ID and organism name
+    dir_name=$(basename $(dirname "$file"))
+    organism=$(echo "$dir_name" | sed 's/_ASM.*//' | sed 's/\.1_.*/.1/')
+
+    # Parse JSON and extract GC and size using jq
+    jq -r --arg org "$organism" '.[] | select(.completeness == "intact") | "\($org) \(.GC) \((.stop - .start + 1))"' "$file"
+done > gc_prophages.txt
+
+join -1 1 -2 1 informacija.txt gc_prophages.txt > profagu_GC_vs_size.txt
+
+
+
+
+
+
+
+
+
+##### FASTANI
+
+#!/bin/bash
+
+#!/bin/bash
+
+# Global output file
+global_output="all_matched_intact_phages.fasta"
+
+# Clear the global output file before starting
+> "$global_output"
+
+# Ensure the output directory exists
+mkdir -p intact_phages
+
+# Loop through all genome folders
+for dir in Failai/*/; do
+    # Extract the folder name and genome ID
+    folder_name=$(basename "$dir")
+    genome_id=$(echo "$folder_name" | cut -d'_' -f1,2)
+    
+    # Define paths to JSON and FASTA files
+    json_file="${dir}predicted_phage_regions.json"
+    fasta_file="${dir}phage_regions.fna"
+    output_file="intact_phages/${genome_id}_intact_phages.fasta"
+
+    # Skip folder if files are missing
+    if [[ ! -f "$json_file" || ! -f "$fasta_file" ]]; then
+        echo "Skipping $dir (missing file)"
+        continue
+    fi
+
+    # Process the directory
+    echo "Processing $dir..."
+    
+    # Clear per-genome output file
+    > "$output_file"
+
+    # Extract intact phage regions from the JSON file
+    jq -c '.[] | select(.completeness == "intact")' "$json_file" | while read -r region; do
+        region_num=$(echo "$region" | jq -r '.region')
+        start=$(echo "$region" | jq -r '.start')
+
+        # Debugging: Log the region and start we're searching for
+        echo "Looking for region $region_num, start $start in $fasta_file" >> debug.log
+
+        # Find the corresponding header line in the fasta file
+        header_line=$(grep -E "^>${region_num}[[:space:]:-]+${start}" "$fasta_file")
+
+        # If header line found, extract the sequence
+        if [[ -n "$header_line" ]]; then
+            # Extract the sequence for the given region
+            awk -v header="$header_line" -v rid="$region_num" -v gid="$genome_id" '
+                BEGIN {found=0}
+                $0 == header {found=1; print ">phage_"rid"_"gid; next}
+                /^>/ && found {exit}
+                found {print}
+            ' "$fasta_file" >> "$output_file"
+
+            # Append the same sequence to the global output file
+            awk -v header="$header_line" -v rid="$region_num" -v gid="$genome_id" '
+                BEGIN {found=0}
+                $0 == header {found=1; print ">phage_"rid"_"gid; next}
+                /^>/ && found {exit}
+                found {print}
+            ' "$fasta_file" >> "$global_output"
+        else
+            # Log header not found
+            echo "Header not found for region: $region_num, start: $start in $fasta_file" >> error.log
+        fi
+    done
+
+    # Indicate that the folder is processed
+    echo "Finished $dir >> $output_file"
+done
+
+# Final message after processing all genomes
+echo "All genomes processed. Combined intact phage sequences saved to: $global_output"
+
+
+
+awk '/^>/ {
+    if (seq) {
+        print seq > "split_phages/" filename
+    }
+    header = substr($0, 2)
+    gsub(/[^A-Za-z0-9_.-]/, "_", header)  # Sanitize filename
+    filename = header ".fna"
+    print $0 > "split_phages/" filename
+    seq=""
+    next
+}
+{
+    print >> "split_phages/" filename
+}' all_matched_intact_phages.fasta
+
+find "$(pwd)" -name "*.fna" > FastANI/query_list.txt
+cp query_list.txt reference_list.txt
+
+fastANI --ql query_list.txt --rl reference_list.txt -o fastani_results_matrix --matrix
+sed -E 's@.*/(phage_[0-9]+_GCA_[0-9]+\.[0-9]+)\.fna@\1@' fastani_results_matrix.matrix > matrica.matrix
+
+
+
+awk '/^>/ {
+    if (seq) {
+        print seq > "genomo_fna/" filename
+    }
+    header = substr($0, 2)
+    gsub(/[^A-Za-z0-9_.-]/, "_", header)  # Sanitize filename
+    filename = header ".fna"
+    print $0 > "genomo_fna/" filename
+    seq=""
+    next
+}
+{
+    print >> "genomo_fna/" filename
+}' sekos.fasta
+
+find "$(pwd)" -name "*.fna" > genomai_list.txt
+cp genomai_list.txt genomai_reference.txt
+
+
+fastANI --ql genomai_list.txt --rl genomai_reference.txt -o genomai_fastani_matrix --matrix
+
+#To avoid escaping every /, you can use an alternative delimiter such as @, |, #, or any other character that isn't part of the pattern or replacement. This makes the command more readable:
+
+sed -E 's@.*/([A-Z0-9]+\.[0-9]+).*\.fna@\1@' genomai_fastani_matrix.matrix > genomai_matrica.matrix

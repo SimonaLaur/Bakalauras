@@ -1,0 +1,148 @@
+#########################
+#Šitas failas skirtas sekų atsirinkimui ir paligynių sudarymui
+
+#Iš NCBI atsisiunčiami RefSeq ir GenBank anotacijos, kurios perkeliamos į atskirus failus
+for directory in GCA*; do
+  sample=$(basename $directory);
+    mv -n "$sample" ../../input/GenBank/
+done
+#######################################
+# GenBank failo anotacijos fna formatu turi ne tik genomo sekas, bet ir plazmidžių
+# Komandinė eilutė nauodjama atrinkti genomo sekoms ir sudėti jas į atskirą failą
+
+grep '>' *.fna
+find . -type f -name "*.fna" -exec grep 'genome' {} \; | wc -l
+
+for file in $(find . -type f -name "*.fna"); do
+    awk '/genome/{if (seq) print seq; print; seq=""} !/^>/{seq=seq $0} END {if (seq) print seq}' "$file" >> sekos.fasta
+done 
+### Surenkamos visos sekos, kuriios savo pavadinime turi 'genome', tačiau kartu paimamos ir plazmidės. Todėl reikia papildomo žingsnio siekiant pšalinti plazmidžių sekas.
+
+######################### Seku fragmentai ###################
+awk 'BEGIN {IGNORECASE=1} 
+     FNR==1 {keep=1} 
+     /^>/ {keep = ($0 !~ /plasmid/)} 
+     keep' GenBank/*/*.fna >> sekos.fasta
+
+### Atrenkamos genomo sekos
+
+########### sRNR/ dif/ XerS pradžios Blast ##############
+
+efetch -db nucleotide -id "NC_009004.1" -seq_start 1237897 -seq_stop 1238533 -format fasta > referentine.fasta
+# regionas paiimtas remiantis straipsnio informacija ir Mildos darbais
+
+blastn -query referentine.fasta -subject sekos.fasta -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore sstrand" > blast_motyvas.txt
+
+awk '{print $2, $9, $10, "0", "0", $13 }' blast_motyvas.txt | sed -e 's/plus/+/g' -e 's/minus/-/g' | 
+awk 'OFS="\t" { if ($2 > $3) { t = $2; $2 = $3; $3 = t; } print }' | sed 's/ /\t/g' > motyvo_koordinates.bed
+
+#Kadangi pažiūrėjus fasta failus buvo rasta, jog kai kurios sekos turi neaiškius fragmentus ties sRNR, šie fragmentai buvo prailginti ir patikrintus prailgintų sekų panašumas.
+
+bedtools slop -i motyvo_koordinates.bed  -g sekos.fasta.fai -l 100 -r 0  -s > prailginta.bed
+
+
+bedtools getfasta -fi sekos.fasta -bed prailginta.bed -s -fo prailginta.fasta
+
+############################################
+
+### Atskirų fragmentų panašumo patikrinimas, siekiant pažiūrėti ar sekose, kur rastas motyvo atitikmuo tie fragmentai yra aptinkami ar ne.
+
+### Šis žngsnis nebūtinas, labiau siekiant daryti išvadas apie konservatyvių fragmentų evoliucinį egzistavimą
+
+
+#################### Dif #############################
+
+
+makeblastdb -in sekos.fasta -dbtype nucl -parse_seqids && \
+blastn -query dif.fasta -subject sekos.fasta -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore sstrand" | \
+awk '{print $2, $9, $10, "0", "0", $13 }' | \
+sed -e 's/plus/+/g' -e 's/minus/-/g' | \
+awk 'OFS="\t" { if ($2 > $3) { t = $2; $2 = $3; $3 = t; } print }' | \
+sed 's/ /\t/g' | \
+bedtools getfasta -fi sekos.fasta -bed stdin -s -fo dif_seka.fasta
+
+
+################# sRNR #################333
+efetch -db nucleotide -id "NC_009004.1" -seq_start 1237897 -seq_stop 1238242 -format fasta > sRNR_referentine.fasta
+
+
+makeblastdb -in sekos.fasta -dbtype nucl -parse_seqids && \
+blastn -query sRNR_referentine.fasta -subject sekos.fasta -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore sstrand" | \
+awk '{print $2, $9, $10, "0", "0", $13 }' | \
+sed -e 's/plus/+/g' -e 's/minus/-/g' | \
+awk 'OFS="\t" { if ($2 > $3) { t = $2; $2 = $3; $3 = t; } print }' | \
+sed 's/ /\t/g' | \
+bedtools getfasta -fi sekos.fasta -bed stdin -s -fo dif_seka.fasta
+
+
+########### priesprasmine sRNR ###############
+
+efetch -db nucleotide -id "NC_009004.1" -seq_start 1237888 -seq_stop 1237984 -format fasta > priesprasmine_sRNR_referentine.fasta
+
+
+makeblastdb -in sekos.fasta -dbtype nucl -parse_seqids 
+blastn -query Sekos_fragmentai/priesprasmine_sRNR_referentine.fasta -subject sekos.fasta -evalue 10 -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore sstrand" | \
+awk '{print $2, $9, $10, "0", "0", $13 }' | \
+sed -e 's/plus/+/g' -e 's/minus/-/g' | \
+awk 'OFS="\t" { if ($2 > $3) { t = $2; $2 = $3; $3 = t; } print }' | \
+sed 's/ /\t/g' | \
+bedtools getfasta -fi sekos.fasta -bed stdin -s -fo priesprasmine_sRNR.fasta
+
+################################
+
+########## Pavadinimai ####################
+
+### Žingsnis skirtas priskirti prie ID logiškus biologinius pavadinimus
+## Tarpai lotyniškame pavadinime pakeičiami, kad būtų lengviau įsikelti į R
+
+awk 'BEGIN {OFS="\t"} {organism = substr($0, index($0,$3)); gsub(/ /, "_", organism); print $1" "$2, organism}' IDs_pavadinimai.txt > sutvarkytas.txt
+
+
+ awk 'BEGIN {OFS="\t"} {organism = substr($0, index($0,$3)); gsub(/ /, " ", organism); print $1" "$2, organism}' IDs_pavadinimai.txt > sutvarkytas.txt
+###########################################
+
+##### Pavadinimų keitimui jalview #############
+
+
+grep ">" sekos.fasta | awk '{print $1}' | tr -d ">"  | sort | uniq > IDs.txt
+
+
+### Pilnas_pavadinimas.txt -- organizmų pavadinimai paiimti iš sekos.fasta failo
+
+cat IDs.txt Pilnas_pavadinimas.txt | sort | uniq -c | sort -r -nk 1 
+
+
+### Tekstiniai duomenys modifikuojami, kad būtų lengviau nuskaitomi R + pašalinama nereikalinga informacija
+
+awk '{
+    split($0, fields, ",")
+    printf "%s\t%s\n", $1, fields[1]
+}' Pilnas_pavadinimas.txt | sed 's/>//g' | sort -k1 | head >> nauji.txt
+
+
+########################## Lentele su pavadinimais ########################
+# Išfltruojamas rūšies pavadinimas
+
+grep '>' sekos.fasta | awk '{print $2" "$3" "$4" "$5}'| sed 's/strain.*//g' |tr -d ">" | sort >> seku_pavadinima.txt
+
+# Suskaičiuojama kiek yra skirtingų rūšių organizmų
+awk '{print $3}' sutvarkytas.txt sed 's/piscium_.*/piscium/' | sed 's/_CIRM-BIA[0-9]*//g' | sed 's/_Lg[0-9]*//g' | sed 's/_ATCC_[0-9]*//g' | sed 's/_sp.*/_sp./g' |  sed 's/subsp._cremoris.*/subsp._cremoris/' | sed 's/subsp._lactis.*/subsp._lactis/' | sort |  sed 's/^[[:space:]]*//;s/[[:space:]]*$//'  | uniq -c
+
+### komentaras dėl rezultatų, šiuo metu stadija - yra paliginys, kuriame rasto 172 sekos su blast.
+## reikia patikrinti kelių sekų panašumą, kur mažesnis motyvas atinkantis ar čia atsitiktinumas ar tiesiog kitoje vietoje panašumas didesni
+
+
+
+
+
+# Profago MG3 palyginimas kitose organizmuose, siekiant patikrinti profagų specifiškumą
+
+
+blastn -query MG3_ref.fasta -subject combined.fasta \
+-outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore sstrand" \
+awk '$3 >= 98 && $4 >= 100' \
+awk '{print $2, $9, $10, "0", "0", $13 }' \
+sed -e 's/plus/+/g' -e 's/minus/-/g' \
+awk 'OFS="\t" { if ($2 > $3) { t = $2; $2 = $3; $3 = t; } print }' \
+sed 's/ /\t/g' \
+bedtools getfasta -fi combined.fasta -bed stdin -s -fo MG3.fasta
